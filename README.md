@@ -37,5 +37,4 @@ The `skin_diagnosis_backend` is a RESTful API built with FastAPI to analyze skin
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/your-username/skin_diagnosis_backend.git
-   cd skin_diagnosis_backend
+   git clone https://github.com/****-username/skin_diagnosis_backend.git
