@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 groq_api_key = os.getenv("groq_api_key")
 if not groq_api_key:
     logger.error("Groq API key not found.")
-    raise ValueError("Groq API key not found. Please set it in your .env file.")
+    raise ValueError("Groq API key not found. Please set it in your enviroment variables.")
 
 # FastAPI app setup
 app = FastAPI()
