@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Load Groq API key from .env
-load_dotenv()
+# load_dotenv()
 groq_api_key = os.getenv("groq_api_key")
 if not groq_api_key:
     logger.error("Groq API key not found.")
