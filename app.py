@@ -94,7 +94,7 @@ async def analyze_endpoint(
     
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main_test:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
 
 
 # To run this: uvicorn api_backend:app --reload
