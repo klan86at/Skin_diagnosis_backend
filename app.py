@@ -1,4 +1,4 @@
-# File: api_backend.py
+# File: app.py
 # Libraries
 import os
 import requests
@@ -97,4 +97,4 @@ if __name__ == "__main__":
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
 
 
-# To run this: uvicorn api_backend:app --reload
+# To run this: uvicorn app:app --reload
