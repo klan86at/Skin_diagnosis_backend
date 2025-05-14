@@ -24,7 +24,7 @@ app = FastAPI()
 # Enable CORS for local frontend testing
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://vercel.com/ken-langats-projects/skin-condition-diagnosis-rag"],  # For production, restrict this to your frontend domain
+    allow_origins=["https://vercel.com/ken-langats-projects/skin-condition-diagnosis-rag"],  # Restrict this to your frontend domain
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -35,7 +35,7 @@ def analyze_skin_condition(query: str, description: str) -> dict:
         combined_text = f"{query} The image shows: {description}"
 
         payload = {
-            "model": "deepseek-r1-distill-llama-70b", #"qwen-qwq-32b",
+            "model": "deepseek-r1-distill-llama-70b",  # Replace with your desired model "qwen-qwq-32b"
             "messages": [{"role": "user", "content": combined_text}],
             "max_tokens": 2000,
             "temperature": 0.3
@@ -63,38 +63,46 @@ def analyze_skin_condition(query: str, description: str) -> dict:
         logger.error(f"Unexpected error: {e}")
         return {"error": str(e)}
 
-
 # API Endpoint
 @app.post("/analyze/")
 async def analyze_endpoint(
     image: UploadFile = File(...),
     description: str = Form(...)
 ):
-    # Save image temporarily (optional)
-    image_bytes = await image.read()
-    temp_image_path = f"temp_{image.filename}"
-    with open(temp_image_path, "wb") as f:
-        f.write(image_bytes)
+    logger.info(f"Received request with description: {description}")
+    logger.info(f"Uploaded image filename: {image.filename}")
 
-    query = (
-        "Provide a detailed analysis of this skin condition. "
-        "Structure the response with key observations, explanations, and final recommendations."
-    )
+    temp_image_path = None  # Initialize temp_image_path to avoid reference errors
+    try:
+        # Save image temporarily (optional)
+        image_bytes = await image.read()
+        temp_image_path = f"temp_{image.filename}"
+        with open(temp_image_path, "wb") as f:
+            f.write(image_bytes)
 
-    api_response = analyze_skin_condition(query, description)
+        query = (
+            "Provide a detailed analysis of this skin condition. "
+            "Structure the response with key observations, explanations, and final recommendations."
+        )
 
-    # Clean up temp image
-    if os.path.exists(temp_image_path):
-        os.remove(temp_image_path)
+        logger.info("Sending request to Groq API")
+        api_response = analyze_skin_condition(query, description)
 
-    if api_response and "choices" in api_response:
-        return {"diagnosis": api_response["choices"][0]["message"]["content"]}
-    else:
-        return {"error": api_response.get("error", "No response from model.")}
-    
+        if api_response and "choices" in api_response:
+            logger.info("Successfully received response from Groq API")
+            return {"diagnosis": api_response["choices"][0]["message"]["content"]}
+        else:
+            logger.error("Error in Groq API response")
+            return {"error": api_response.get("error", "No response from model.")}
+
+    finally:
+        # Ensure cleanup happens even if an error occurs
+        if temp_image_path and os.path.exists(temp_image_path):
+            logger.info(f"Cleaning up temporary file: {temp_image_path}")
+            os.remove(temp_image_path)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
-
 
 # To run this: uvicorn app:app --reload
