@@ -24,7 +24,7 @@ app = FastAPI()
 # Enable CORS for local frontend testing
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://vercel.com/ken-langats-projects/skin-condition-diagnosis-rag"],  # Restrict this to your frontend domain
+    allow_origins=["https://skin-condition-diagnosis-rag.vercel.app/"],  # Restrict this to your frontend domain
     allow_methods=["*"],
     allow_headers=["*"],
 )
