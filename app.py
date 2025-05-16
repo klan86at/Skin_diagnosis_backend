@@ -25,12 +25,19 @@ app.add_middleware(
     allow_origins=[
         "https://skin-condition-diagnosis-rag.vercel.app",
         "http://localhost:3000",
-        "http://localhost:8000"
+        "http://localhost:8000",
+        "*"
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Root endpoint
+@app.get("/")
+async def root():
+    logger.info("Root endpoint accessed")
+    return {"message": "Skin Disease Diagnosis Backend"}
 
 # Health check endpoint
 @app.get("/health")
@@ -78,12 +85,13 @@ async def analyze_endpoint(
     image: UploadFile = File(...),
     description: str = Form(...)
 ):
-    logger.info(f"Received request with description: {description}")
-    logger.info(f"Uploaded image filename: {image.filename}")
+    logger.info(f"Analyze endpoint called with description: {description}")
+    logger.info(f"Uploaded image filename: {image.filename}, size: {image.size} bytes")
 
     try:
         # Read image bytes directly without saving to disk
         image_bytes = await image.read()
+        logger.info(f"Image bytes read: {len(image_bytes)} bytes")
 
         query = (
             "Provide a detailed analysis of this skin condition. "
@@ -97,7 +105,7 @@ async def analyze_endpoint(
             logger.info("Successfully received response from Groq API")
             return {"diagnosis": api_response["choices"][0]["message"]["content"]}
         else:
-            logger.error("Error in Groq API response")
+            logger.error(f"Error in Groq API response: {api_response}")
             raise HTTPException(status_code=500, detail=api_response.get("error", "No response from model."))
 
     except Exception as e:
