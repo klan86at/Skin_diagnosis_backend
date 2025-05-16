@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
-groq_api_key = os.getenv("GROQ_API_KEY")
+groq_api_key = os.getenv("groq_api_key")
 if not groq_api_key:
     logger.error("GROQ_API_KEY not found.")
     raise ValueError("GROQ_API_KEY not found. Please set it in your .env file or Render environment variables.")
