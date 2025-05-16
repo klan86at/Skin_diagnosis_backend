@@ -1,33 +1,42 @@
-# File: app.py
-# Libraries
 import os
 import requests
 import logging
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File, Form
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 # Logging setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# Load Groq API key from .env
+# Load environment variables
 load_dotenv()
-groq_api_key = os.getenv("groq_api_key")
+groq_api_key = os.getenv("GROQ_API_KEY")
 if not groq_api_key:
-    logger.error("Groq API key not found.")
-    raise ValueError("Groq API key not found. Please set it in your .env file.")
+    logger.error("GROQ_API_KEY not found.")
+    raise ValueError("GROQ_API_KEY not found. Please set it in your .env file or Render environment variables.")
 
 # FastAPI app setup
 app = FastAPI()
 
-# Enable CORS for local frontend testing
+# Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://skin-condition-diagnosis-rag.vercel.app/"],  # Restrict this to your frontend domain
+    allow_origins=[
+        "https://skin-condition-diagnosis-rag.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:8000"
+    ],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    logger.info("Health check requested")
+    return {"status": "healthy"}
 
 # Core function to analyze skin condition using Groq
 def analyze_skin_condition(query: str, description: str) -> dict:
@@ -35,7 +44,7 @@ def analyze_skin_condition(query: str, description: str) -> dict:
         combined_text = f"{query} The image shows: {description}"
 
         payload = {
-            "model": "deepseek-r1-distill-llama-70b",  # Replace with your desired model "qwen-qwq-32b"
+            "model": "deepseek-r1-distill-llama-70b",
             "messages": [{"role": "user", "content": combined_text}],
             "max_tokens": 2000,
             "temperature": 0.3
@@ -64,7 +73,7 @@ def analyze_skin_condition(query: str, description: str) -> dict:
         return {"error": str(e)}
 
 # API Endpoint
-@app.post("/analyze/")
+@app.post("/analyze")
 async def analyze_endpoint(
     image: UploadFile = File(...),
     description: str = Form(...)
@@ -72,13 +81,9 @@ async def analyze_endpoint(
     logger.info(f"Received request with description: {description}")
     logger.info(f"Uploaded image filename: {image.filename}")
 
-    temp_image_path = None  # Initialize temp_image_path to avoid reference errors
     try:
-        # Save image temporarily (optional)
+        # Read image bytes directly without saving to disk
         image_bytes = await image.read()
-        temp_image_path = f"temp_{image.filename}"
-        with open(temp_image_path, "wb") as f:
-            f.write(image_bytes)
 
         query = (
             "Provide a detailed analysis of this skin condition. "
@@ -93,16 +98,12 @@ async def analyze_endpoint(
             return {"diagnosis": api_response["choices"][0]["message"]["content"]}
         else:
             logger.error("Error in Groq API response")
-            return {"error": api_response.get("error", "No response from model.")}
+            raise HTTPException(status_code=500, detail=api_response.get("error", "No response from model."))
 
-    finally:
-        # Ensure cleanup happens even if an error occurs
-        if temp_image_path and os.path.exists(temp_image_path):
-            logger.info(f"Cleaning up temporary file: {temp_image_path}")
-            os.remove(temp_image_path)
+    except Exception as e:
+        logger.error(f"Error processing request: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
-
-# To run this: uvicorn app:app --reload
+    uvicorn.run("app:app", host="0.0.0.0", port=int(os.getenv("PORT", 8000)), reload=True)
